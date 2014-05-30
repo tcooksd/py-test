@@ -1,0 +1,77 @@
+#!/usr/bin/python
+
+import json
+import argparse
+
+
+def parse_args():
+    """ parse arguments out of sys.argv """
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("-n", "--name", default="dev",
+                        help="default name of the environment")
+    parser.add_argument("-d", "--description", default="local",
+                        help="default description")
+    parser.add_argument("-jc", "--json_class", default="Chef::Environment",
+                        help="json class to use")
+    parser.add_argument('--default_attributes', type=str, nargs='+',
+                        help='default attributes specific to this environemnt:'
+                         'pass values in between double quotes: module_name'
+                         ' attribute_name value ')
+    parser.add_argument('--cookbook_versions', type=str, nargs='*',
+                        help='Cookbook versions to assign to use in this'
+                        ' environment: pass in key value pairs cookbook_name'
+                        ' version')
+    parser.add_argument('--override_attributes', type=str, nargs='*',
+                        help='Override attributes for environment x')
+    return parser.parse_args()
+
+
+def parse_cookbook_args():
+    args = parse_args()
+    i = iter(args.cookbook_versions)
+    dict_c = dict(zip(i, i))
+    return dict_c
+
+
+def parse_default_attributes():
+    # we have to determine how many levels of dictionaries are being passed
+    # in. Pass in args in the form of lists broken up by double quotes and
+    # then returned as a dict.
+    args = parse_args()
+    def_at = args.default_attributes
+    dict_r = {}
+    for i in def_at:
+        qa = i.split()
+        if len(qa) <= 2:
+            print "please provide key value pairs"
+        elif len(qa) == 3:
+            dict1 = {qa[0]: {qa[1]: qa[2]}}
+            dict_r.update(dict1)
+        elif len(qa) == 4:
+            dict1 = {qa[0]: {qa[1]: {qa[2]: qa[3]}}}
+            dict_r.update(dict1)
+        else:
+            print "you provided to many values"
+    return dict_r
+
+
+def produce_json():
+  # produce final json formated data from args passed in.
+    args = parse_args()
+    data = json.dumps({'name': args.name,
+        'description': args.description,
+        'cookbook_versions':
+          parse_cookbook_args(),
+        'json_class': args.json_class,
+        'chef_type': 'environment',
+        'default_attributes': parse_default_attributes(),
+        },
+        sort_keys=False, indent=4)
+    return data
+
+
+def main():
+    print produce_json()
+
+if __name__ == '__main__':
+    main()
